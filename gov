@@ -1,5 +1,27 @@
 #!/bin/bash
 
+function display_help {
+    echo "Wrapper around github.com/kr/goven to automatically import and update third
+party dependencies by the use of go list tool.
+    
+Usage:
+
+    ./`basename $0` <args> [options]
+
+
+Commands:
+
+    list        list dependencies
+    up          update dependencies
+
+Options:
+
+    -all        update all dependencies
+    -h|--help   show this help
+    "
+    exit
+}
+
 function error {
     echo "ERR: $@" 1>&2
 }
@@ -9,15 +31,24 @@ function fail {
     exit 1
 }
 
+function find-deps {
+    if [ ! $# -eq 1 ] ; then
+        return 1
+    fi
+
+    local pkg=$1
+    local deps=`go list -f '{{join .Deps "\n"}}' ${pkg} |
+        xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'`
+    echo "${deps}"
+}
+
 function update {
     local update=false
-    [[ $1 == -update* ]] && update=true
+    [[ $1 == -all* ]] && update=true
 
-    local deps=`go list -f '{{join .Deps "\n"}}' ./... |
-        xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'`
     local cwd=`pwd`
 
-    for pkg in ${deps}; do
+    for pkg in $(find-deps "./..."); do
         local dir="`go list -f '{{.Dir}}' ${pkg}`" || return 1
 
         # don't consider sub-packages
@@ -43,10 +74,7 @@ function update {
         goven -copy -rewrite -prefix="third_party" ${pkg} || return 1
 
         # rewrite import of third_party which depend on each other
-        ddeps=$(go list -f '{{join .Deps "\n"}}' ${pkg} \
-            | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' ${pp#*third_party/})
-
-        for ddep in ${ddeps}; do
+        for ddep in $(find-deps "${pkg}"); do
             goven -copy=false -prefix="third_party" ${ddep} || return 1
         done
     done
@@ -59,4 +87,24 @@ if [ -z "${GOPATH}" ]; then
     exit 1
 fi
 
-update $@ || fail
+# parse options
+while true; do
+    case "$1" in
+        list)
+            find-deps "./..."
+            exit
+            ;;
+        up)
+            shift
+            update $@ || fail
+            exit
+            ;;
+        -h|--help)
+            display_help
+            ;;
+        *)
+            display_help
+            ;;
+    esac
+    shift;
+done

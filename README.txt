@@ -15,8 +15,15 @@ install
 
 usage
 
-    $ gov
+    gov <args> [options]
 
-pass `-update` flag to update imported packages as well
 
-    $ gov -update
+commands
+
+    list        list dependencies
+    up          update dependencies
+
+options
+
+    -all        update all dependencies
+    -h|--help   show help

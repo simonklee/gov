@@ -3,11 +3,11 @@ by the use of `go list` tool.
 
 Dependencies
 
-    go install github.com/philips/goven
+    $ go install github.com/philips/goven
 
 Install to PATH
 
-    curl https://raw2.github.com/simonz05/gov/master/gov > /usr/local/bin/gov
+    # curl https://raw2.github.com/simonz05/gov/master/gov -o /usr/local/bin/gov
 
 Usage
 

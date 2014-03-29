@@ -1,20 +1,46 @@
 #!/bin/bash
 
-dependencies=`go list -f '{{join .Deps "\n"}}' |
-    xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'`
+if [ -z "${GOPATH}" ]; then
+	echo "GOPATH must be set"
+	exit 1
+fi
 
-cwd=`pwd`
+function error {
+    echo "ERR: $@" 1>&2
+}
 
-while read package; do 
-    dir="`go list -f '{{.Dir}}' ${package}`"
+function fail {
+    error "program terminated"
+    exit 1
+}
 
-    if [[ ${dir} == ${cwd}* ]]; then
-        continue
-    fi
+function update {
+    local deps=`go list -f '{{join .Deps "\n"}}' |
+        xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'`
+    local cwd=`pwd`
 
-    if [[ ${package} == "." ]]; then
-        echo "panic, tried to delete dir"
-        exit 1
-    fi
-    goven -copy -rewrite -prefix="third_party" ${package}
-done < <(echo "${dependencies}")
+    while read pkg; do
+        local dir="`go list -f '{{.Dir}}' ${pkg}`" || return 1
+        local rewrite="true"
+
+        # don't consider sub-packages
+        if [[ ${dir} == ${cwd}* ]]; then
+            if [[ ${dir} != ${cwd}/third_party* ]]; then
+                continue
+            fi
+
+            # unless sub-package is a third_party pkg, then grab the real
+            # package import path
+            pkg="${pkg#*third_party/}" || return 1
+        fi
+
+        if [[ ${pkg} == "." ]]; then
+            error "unexpected pkg name"
+            return 1
+        fi
+
+        goven -copy -rewrite -prefix="third_party" ${pkg} || return 1
+    done < <(echo "${deps}")
+}
+
+update || fail

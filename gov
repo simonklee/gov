@@ -1,0 +1,20 @@
+#!/bin/bash
+
+dependencies=`go list -f '{{join .Deps "\n"}}' |
+    xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'`
+
+cwd=`pwd`
+
+while read package; do 
+    dir="`go list -f '{{.Dir}}' ${package}`"
+
+    if [[ ${dir} == ${cwd}* ]]; then
+        continue
+    fi
+
+    if [[ ${package} == "." ]]; then
+        echo "panic, tried to delete dir"
+        exit 1
+    fi
+    goven -copy -rewrite -prefix="third_party" ${package}
+done < <(echo "${dependencies}")

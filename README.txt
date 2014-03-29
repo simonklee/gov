@@ -25,5 +25,5 @@ commands
 
 options
 
-    -all        update all dependencies
+    -a|--all    update all dependencies
     -h|--help   show help

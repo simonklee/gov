@@ -16,7 +16,7 @@ Commands:
 
 Options:
 
-    -all        update all dependencies
+    -a|--all    update all dependencies
     -h|--help   show this help
     "
     exit
@@ -44,7 +44,7 @@ function find-deps {
 
 function update {
     local update=false
-    [[ $1 == -all* ]] && update=true
+    [[ $1 == --all* || $1 == -a* ]] && update=true
 
     local cwd=`pwd`
 

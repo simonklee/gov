@@ -17,7 +17,7 @@ function update {
         xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'`
     local cwd=`pwd`
 
-    while read pkg; do
+    for pkg in ${deps}; do
         local dir="`go list -f '{{.Dir}}' ${pkg}`" || return 1
 
         # don't consider sub-packages
@@ -41,7 +41,16 @@ function update {
         fi
 
         goven -copy -rewrite -prefix="third_party" ${pkg} || return 1
-    done < <(echo "${deps}")
+
+        # rewrite import of third_party which depend on each other
+        ddeps=$(go list -f '{{join .Deps "\n"}}' ${pkg} \
+            | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' ${pp#*third_party/})
+
+        for ddep in ${ddeps}; do
+            goven -copy=false -prefix="third_party" ${ddep} || return 1
+        done
+    done
+
     go fmt ./...
 }
 

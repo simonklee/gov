@@ -12,3 +12,7 @@ Install to PATH
 Usage
 
     $ gov
+
+pass `-update` flag to update imported packages as well
+
+    $ gov -update
